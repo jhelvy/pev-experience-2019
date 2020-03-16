@@ -1,0 +1,20 @@
+# ----------------------------------------------------------------------
+
+Data files:
+evSalesData.csv
+
+Description:
+Monthly sales of EVs in the U.S. from Oct. 2006 - Sept. 2019
+
+Source:
+Data are scraped from hybridcars.com and insideevs.com.
+
+# ----------------------------------------------------------------------
+
+Data files:
+autoshow_complete.Rds
+autoshow.Rds
+
+Description:
+Results from the entry and exit surveys fielded at the DC autoshow PEV
+EZEV ride and drive experience held April 5 - 14, 2019.
