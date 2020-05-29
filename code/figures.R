@@ -1,10 +1,16 @@
-# Setup ---------------------------------------------------------------------
+# Setup -----------------------------------------------------------------------
 
 source(file.path('code', '0startup.R'))
 plotColors <- c('grey80', 'sienna')
 sankeyColors <- c('steelblue', 'sienna', 'grey80')
 
-# Compute 2018 fraction of PEV sales (BEV + PHEV)
+# Import data
+evSales <- read_csv(file.path('data', 'evSalesData.csv')) %>%
+    filter(date < ymd('2019-09-01')) # Latest date of scraped data
+
+
+# 2018 PEV market share -------------------------------------------------------
+
 pevSales2018 <- evSales  %>%
     group_by(year) %>%
     summarise(sales = sum(sales)) %>%
@@ -15,14 +21,9 @@ allSales2018 <- 17274250
 # https://insideevs.com/news/342380/us-plug-in-electric-car-sales-charted-december-2018/
 
 # Market share = 2.1%
-100*(pevSales2018$sales / allSales2018)
-
+round(100*(pevSales2018$sales / allSales2018), 1)
 
 # Figure 1 --------------------------------------------------------------------
-
-# Import data
-evSales <- read_csv(file.path('data', 'evSalesData.csv')) %>%
-    filter(date < ymd('2019-09-01')) # Latest date of scraped data
 
 # Make the figure
 figure1 <- evSales %>%
@@ -49,7 +50,7 @@ figure1 <- evSales %>%
     scale_fill_manual(values = c('#80B1D3', '#175279', '#FF3B3F')) +
     theme_minimal_hgrid(font_family = 'Roboto Condensed') +
     theme(
-        legend.position = c(0.8, .95),
+        legend.position = c(0.75, 0.90),
         legend.background = element_rect(
             fill = 'white', color = 'white', size = 3),
         legend.justification = c("right", "top")) +
@@ -61,6 +62,54 @@ figure1 <- evSales %>%
 
 ggsave(file.path('figures', 'figure1.png'),
        figure1, width = 10, heigh = 5)
+
+# Figure 1 (alt) --------------------------------------------------------------
+
+# This version includes both BEVs and PHEVs
+
+# Make the figure
+figure1alt <- evSales %>%
+    filter(category %in% c('bev', 'phev')) %>% 
+    mutate(
+        category = fct_recode(category, 
+                              'BEV' = 'bev', 
+                              'PHEV' = 'phev'), 
+        category = fct_relevel(category, 
+                               c('PHEV', 'BEV')),
+        sales = sales / 10^3,
+        bevBrand =
+            ifelse(
+                vehicle == 'Tesla Model 3', 'Tesla Model 3',
+                ifelse(
+                    (brand == 'Tesla') & (vehicle != 'Model 3'),
+                    'Tesla Model S & X', 'Non-Tesla')),
+        bevBrand = fct_relevel(
+            bevBrand, 'Tesla Model 3', 'Tesla Model S & X', 'Non-Tesla')) %>%
+    group_by(category, bevBrand, date) %>%
+    summarise(sales = sum(sales)) %>%
+    ggplot(aes(x = date, y = sales)) +
+    geom_col(aes(fill = bevBrand)) +
+    facet_wrap(~category) + 
+    scale_x_date(
+        limits = ymd(c('2011-01-01', '2019-09-01')),
+        date_breaks = '1 year',
+        date_labels = "%Y") +
+    scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+    scale_fill_manual(values = c('#80B1D3', '#175279', '#FF3B3F')) +
+    theme_minimal_hgrid(font_family = 'Roboto Condensed') +
+    theme(
+        legend.position = c(0.75, 0.9),
+        legend.background = element_rect(
+            fill = 'white', color = 'white', size = 3),
+        legend.justification = c("right", "top")) +
+    labs(x       = NULL,
+         y       = 'Sales (Thousands)',
+         title   = 'U.S. Monthly Sales of Plug-in Electric Vehicles',
+         fill    = 'Vehicle Model',
+         caption = 'Data sources: hybridcars.com & insideEVs.com')
+
+ggsave(file.path('figures', 'figure1alt.png'),
+       figure1alt, width = 10, heigh = 4)
 
 # Figure 2 --------------------------------------------------------------------
 
