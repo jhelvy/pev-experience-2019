@@ -4,6 +4,16 @@ source(file.path('code', '0startup.R'))
 plotColors <- c('grey80', 'sienna')
 sankeyColors <- c('steelblue', 'sienna', 'grey80')
 
+# Compute 2018 fraction of PEV sales (BEV + PHEV)
+pevSales2018 <- evSales  %>% 
+    group_by(year) %>% 
+    summarise(sales = sum(sales)) %>% 
+    filter(year == 2018)
+allSales2018 <- 17274250 # source: https://www.marklines.com/en/statistics/flash_sales/salesfig_usa_2018
+# Market share:
+100*(pevSales2018$sales / allSales2018) 
+
+
 # Figure 1 --------------------------------------------------------------------
 
 # Import data
