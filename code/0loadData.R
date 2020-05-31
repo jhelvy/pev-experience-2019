@@ -1,10 +1,10 @@
 # --------------------------------------------------------------------------
 # Load the data
 
-# Use the RDS files instead of csv so that rating levels are 
+# Use the RDS files instead of csv so that rating levels are
 # correctly ordered
-df <- readRDS(file.path('data', 'autoshow.Rds'))
-df_complete <- readRDS(file.path('data', 'autoshow_complete.Rds'))
+df <- readRDS(here::here('data', 'autoshow.Rds'))
+df_complete <- readRDS(here::here('data', 'autoshow_complete.Rds'))
 
 # --------------------------------------------------------------------------
 # Summary of BEV & PHEV consideration ratings

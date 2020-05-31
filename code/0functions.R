@@ -7,7 +7,12 @@
 ratingLevels <- c(
     "Definitely not", "Probably not", "Maybe / Not sure", "Probably yes",
     "Definitely yes")
-ratings <- factor(ratingLevels, ordered = TRUE, levels = ratingLevels)
+ratingLevels <- factor(ratingLevels, ordered = TRUE, levels = ratingLevels)
+
+ratingsChangeLevels <- c(
+    "Negative", "No change", "Positive")
+ratingsChangeLevels <- factor(ratingChangeLevels, ordered = TRUE, 
+                       levels = ratingChangeLevels)
 
 # Summarize ratings data ------------------------------------------------------
 
@@ -21,7 +26,7 @@ countSummary <- function(df, var) {
         mutate(
             type   = str_to_upper(type),
             period = str_to_title(period),
-            rating = factor(rating, ordered = TRUE, levels = ratings)) %>%
+            rating = factor(rating, ordered = TRUE, levels = ratingLevels)) %>%
         dplyr::select(type, period, rating, {{var}}, n) %>%
         # Count rating by type, period, and var
         group_by(type, period, rating, {{var}}) %>%
@@ -35,7 +40,7 @@ countSummary <- function(df, var) {
         # Re-level factors for plotting
         mutate(
             period = fct_relevel(period, c('Before', 'After')),
-            rating = fct_relevel(rating, rev(levels(ratings)))) %>%
+            rating = fct_relevel(rating, rev(levels(ratingLevels)))) %>%
         arrange(type, period, {{var}})
     return(counts)
 }
@@ -51,18 +56,7 @@ countSummarySub <- function(df, var, name) {
 
 # Data prep for model fitting -------------------------------------------------
 
-loadData <- function(split = FALSE, frac) {
-    # Load and format data
-    df <- readRDS(file.path('data', 'autoshow_complete.Rds'))
-    df <- prepModelData(df)
-    # Create training and testing data frames for BEVs and PHEVs:
-    if (split) { return(splitData(df, frac)) }
-    # If don't want split train / test data, return the full sets:
-    return(list(bev_train  = filter(df, type == 'BEV'),
-                phev_train = filter(df, type == 'PHEV')))
-}
-
-prepModelData <- function(df) {
+prepRatingsData <- function(df) {
     # Reshape the data for the consideration score before and after
     df <- df %>%
         gather(key = 'type', value = 'rating',
@@ -71,353 +65,48 @@ prepModelData <- function(df) {
         separate(type, into = c('type', 'period'), sep = '\\.') %>%
         separate(type, into = c('drop', 'type'), sep = 'consider') %>%
         dplyr::select(
-            fuelElec_correct, fuelGas_correct, fuel_bothanswers,
-            subsidy_correct, BEV_parking, drove_in_BEV, car_kona, car_leaf,
-            car_etron, car_nexo, car_priusprime, type, period, rating,
-            multicar, neighborhasEV) %>%
+            fuelElec_only, fuelGas_only, fuel_bothanswers,
+            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV, 
+            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron, 
+            car_nexo, car_priusprime, multicar, count_cars_driven, 
+            type, period, rating) %>%
         mutate(
             type   = str_to_upper(type),
             period = str_to_title(period),
             period = factor(period, levels = c('Before', 'After')),
             periodAfter = ifelse(period == 'After', 1, 0),
-            rating = factor(rating, ordered = TRUE, levels = ratings))
-    df$id <- seq(nrow(df))
-    return(df)
+            rating = factor(rating, ordered = TRUE, levels = ratingLevels))
+    df_bev <- df %>% 
+        filter(type == 'BEV') %>% 
+        mutate(id = row_number())
+    df_phev <- df %>% 
+        filter(type == 'PHEV') %>% 
+        mutate(id = row_number())
+    return(list(df_bev = df_bev, df_phev = df_phev))
 }
 
-# Function to create training and test data sets
-splitData <- function(df, frac) {
-    df_bev <- filter(df, type == 'BEV')
-    df_phev <- filter(df, type == 'PHEV')
-    # Create training sets
-    bev_train <- sample_frac(df_bev, frac)
-    phev_train <- sample_frac(df_phev, frac)
-    # Create test sets
-    bev_test <- anti_join(df_bev, bev_train, by = 'id')
-    phev_test <- anti_join(df_phev, phev_train, by = 'id')
-    return(list(bev_train  = bev_train,
-                bev_test   = bev_test,
-                phev_train = phev_train,
-                phev_test  = phev_test))
-}
-
-
-
-
-# *****************************************************************************
-# FIT MODELS ------------------------------------------------------------------
-# *****************************************************************************
-
-# Main BEV models -------------------------------------------------------------
-
-fit_bev <- function(split = FALSE, frac = 0.7) {
-    # Main effect for BEV consideration rating
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_knowledge_fuels <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on if respondent had greater knowledge
-    # about PEV refueling
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuelElec_correct + fuelGas_correct +
-        fuel_bothanswers,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_knowledge_subsidies <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on if respondent had greater knowledge
-    # about PEV subsidies
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~  period + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_neighborEV <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on whether neighbor has an EV
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period + neighborhasEV,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_carModels <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on which vehicle model rode in
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period + car_etron +car_kona + car_leaf + car_nexo +
-            car_priusprime,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-# Supplementary BEV models -----------------------------------------------
-
-fit_bev_multicar <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on whether multicar household
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period + multicar,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_parking <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on whether have at-home parking
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period + BEV_parking,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_carType <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on if rode in BEV or PHEV
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~ period + drove_in_BEV,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_knowledge1 <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on if respondent had greater knowledge
-    # about PEV refueling and subsidies
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuelElec_correct + fuelGas_correct +
-            fuel_bothanswers + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_knowledge2 <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings depending on if respondent got both refueling
-    # knowledge questions correct and the subsidy question correct
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuel_bothanswers + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_bev_all <- function(split = FALSE, frac = 0.7) {
-    # Effect for BEV ratings w/all coefficients
-    df_list <- loadData(split, frac)
-    df_train <- df_list$bev_train
-    df_test <- df_list$bev_test
-    fit <- addFitStats(polr(
-        rating ~  period + BEV_parking + drove_in_BEV + numCarsOwned + neighborhasEV +
-            car_kona + car_leaf + car_etron + car_nexo + car_priusprime +
-            fuelElec_correct + fuelGas_correct + fuel_bothanswers +
-            subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-# Supplementary PHEV models -----------------------------------------------
-
-fit_phev <- function(split = FALSE, frac = 0.7) {
-    # Main effect for PHEV consideration rating
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_knowledge_fuels <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on if respondent had greater knowledge
-    # about PEV refueling
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuelElec_correct + fuelGas_correct +
-        fuel_bothanswers,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_knowledge_subsidies <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on if respondent had greater knowledge
-    # about PEV subsidies
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~  period + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_neighborEV <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on whether neighbor has an EV
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period + neighborhasEV,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_carModels <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on which vehicle model rode in
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period + car_etron +car_kona + car_leaf + car_nexo +
-            car_priusprime,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_multicar <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on whether multicar household
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period + multicar,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_parking <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on whether have at-home parking
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period + BEV_parking,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_carType <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on if rode in BEV or PHEV
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~ period + drove_in_BEV,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_knowledge1 <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on if respondent had greater knowledge
-    # about PEV refueling and subsidies
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuelElec_correct + fuelGas_correct +
-            fuel_bothanswers + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_knowledge2 <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings depending on if respondent got both refueling
-    # knowledge questions correct and the subsidy question correct
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~  period + fuel_bothanswers + subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
-}
-
-fit_phev_all <- function(split = FALSE, frac = 0.7) {
-    # Effect for PHEV ratings w/all coefficients
-    df_list <- loadData(split, frac)
-    df_train <- df_list$phev_train
-    df_test <- df_list$phev_test
-    fit <- addFitStats(polr(
-        rating ~  period + BEV_parking + drove_in_BEV + numCarsOwned +
-            car_kona + car_leaf + car_etron + car_nexo + car_priusprime +
-            fuelElec_correct + fuelGas_correct + fuel_bothanswers +
-            subsidy_correct,
-        data = df_train, Hess = TRUE))
-    fit$df_train <- df_train
-    fit$df_test <- df_test
-    return(fit)
+prepRatingsChangeData <- function(df) {
+    df <- df %>% 
+        gather(key = 'type', value = 'ratingChange',
+               considerBev.change:considerPhev.change) %>%
+        mutate(type = ifelse(type == 'considerBev.change', 'BEV', 'PHEV')) %>% 
+        dplyr::select(
+            fuelElec_only, fuelGas_only, fuel_bothanswers,
+            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV, 
+            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron, 
+            car_nexo, car_priusprime, multicar, count_cars_driven, 
+            type, ratingChange) %>%
+            mutate(
+                type   = str_to_upper(type),
+                ratingChange = factor(ratingChange, ordered = TRUE, 
+                                      levels = ratingsChangeLevels))
+    df_bev <- df %>% 
+        filter(type == 'BEV') %>% 
+        mutate(id = row_number())
+    df_phev <- df %>% 
+        filter(type == 'PHEV') %>% 
+        mutate(id = row_number())
+    return(list(df_bev = df_bev, df_phev = df_phev))
 }
 
 
@@ -560,7 +249,7 @@ computeProbsCI <- function(draws) {
     prob_draws <- getProbDraws(draws)
     probsCI <- as_tibble(t(apply(prob_draws, 2, ci)))
     result <- probsCI %>%
-        dplyr::mutate(rating = ratings) %>%
+        dplyr::mutate(rating = ratingLevels) %>%
         dplyr::select(rating, mean, lower, upper) %>%
         gather(key = 'stat', value = 'p', mean:upper)
     return(result)
@@ -571,7 +260,7 @@ getProbDraws <- function(draws) {
     prob_draws_shifted <- cbind(
         prob_draws[,2:ncol(draws)], unit = matrix(1, nrow = nrow(draws)))
     prob_draws <- cbind(prob_draws[,1], prob_draws_shifted - prob_draws)
-    names(prob_draws) <- ratings
+    names(prob_draws) <- ratingLevels
     return(prob_draws)
 }
 
@@ -580,7 +269,7 @@ getProbs <- function(coefs) {
     probs <- exp(coefs) / (1 + exp(coefs))
     probs_shifted <- c(probs[2:length(coefs)], 1)
     probs <- c(probs[1], probs_shifted - probs)
-    names(probs) <- ratings
+    names(probs) <- ratingLevels
     return(probs)
 }
 
@@ -602,58 +291,20 @@ percentChangeSummary <- function(fit) {
     return(result)
 }
 
-# Functions for testing fit models --------------------------------------------
-
-predictionAccuracy <- function(modelFunc, frac = 0.7, niter = 10) {
-    result <- list()
-    for (i in seq(niter)) {
-        print(paste('Iteration:', i))
-        # Fit the model
-        fit <- modelFunc(split = TRUE, frac = frac)
-        # Get the prediction scores
-        result[[i]] <- getPredictionScore(fit)
-    }
-    return(do.call(rbind, result))
-}
-
-getPredictionScore <- function(fit) {
-    # Get matrices of appropriate coefficients for each respondent
-    df_test <- fit$df_test
-    X <- df_test[names(fit$coefficients)]
-    X <- X * matrix(rep(fit$coefficients, nrow(X)), ncol = ncol(X), byrow = T)
-    coefs <- apply(X, 1, sum)
-    coefMat <- repDraws(coefs, length(fit$zeta))
-    zetaMat <- matrix(rep(fit$zeta, nrow(X)), ncol = length(fit$zeta),byrow = T)
-    coefsMat <- zetaMat + coefMat
-    probsMat <- as.data.frame(getProbDraws(coefsMat))
-    names(probsMat) <- ratings
-    probsMat$id <- df_test$id
-    p <- probsMat %>%
-        as.data.frame() %>%
-        gather(rating, p, -id) %>%
-        right_join(df_test, by = c('id', 'rating')) %>%
-        group_by(id) %>%
-        mutate(select = sample(x = c(1, 0), size = 1, prob = c(p, 1 - p))) %>%
-        group_by(period) %>%
-        summarise(p = sum(select) / n())
-    return(p)
-}
-
-
 
 # *****************************************************************************
 # PLOT RESULTS ----------------------------------------------------------------
 # *****************************************************************************
 
 theme_bars <- function() {
-    theme_bw(base_family = 'Fira Sans Condensed', 
+    theme_bw(base_family = 'Fira Sans Condensed',
              base_size = 12) +
         theme(
             strip.text.x = element_text(hjust = 0),
             panel.grid.major.y = element_blank(),
             panel.grid.minor.y = element_blank(),
             panel.grid.minor.x = element_blank(),
-            legend.position = 'none') 
+            legend.position = 'none')
 }
 
 theme_barplot <- function() {
