@@ -1,12 +1,4 @@
 # --------------------------------------------------------------------------
-# Load the data
-
-# Use the RDS files instead of csv so that rating levels are
-# correctly ordered
-df <- readRDS(here::here('data', 'autoshow.Rds'))
-df_complete <- readRDS(here::here('data', 'autoshow_complete.Rds'))
-
-# --------------------------------------------------------------------------
 # Summary of BEV & PHEV consideration ratings
 
 bevSummary <- df_complete %>%
@@ -50,7 +42,7 @@ main <- df_complete %>%
     mutate(
         type   = str_to_upper(type),
         period = str_to_title(period),
-        rating = factor(rating, ordered = TRUE, levels = ratings)) %>%
+        rating = factor(rating, ordered = TRUE, levels = ratingLevels)) %>%
     dplyr::select(type, period, rating, n) %>%
     # Count rating by type and period
     group_by(type, period, rating) %>%
@@ -64,7 +56,7 @@ main <- df_complete %>%
     # Relevel factors for plotting
     mutate(
         period = fct_relevel(period, c('Before', 'After')),
-        rating = fct_relevel(rating, rev(levels(ratings)))) %>%
+        rating = fct_relevel(rating, rev(levels(ratingLevels)))) %>%
     arrange(type, period)
 
 # Summaries based on consumer responses
@@ -102,4 +94,3 @@ fuelElec <- countSummary(df_complete, fuelElec_correct) %>%
     mutate(fuelElec_correct = ifelse(fuelElec_correct == 1, 'Yes', 'No'))
 fuelBoth <- countSummary(df_complete, fuel_bothanswers) %>%
     mutate(fuel_bothanswers = ifelse(fuel_bothanswers == 1, 'Yes', 'No'))
-

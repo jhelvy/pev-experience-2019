@@ -1,13 +1,11 @@
 # Setup -----------------------------------------------------------------------
 
-source(file.path('code', '0startup.R'))
+# Load libraries, data, and make summary tables of the data
+source(here::here('code', '0setup.R'))
+
+# Load plot colors
 plotColors <- c('grey80', 'sienna')
 sankeyColors <- c('steelblue', 'sienna', 'grey80')
-
-# Import data
-evSales <- read_csv(file.path('data', 'evSalesData.csv')) %>%
-    filter(date < ymd('2019-09-01')) # Latest date of scraped data
-
 
 # 2018 PEV market share -------------------------------------------------------
 
@@ -60,7 +58,7 @@ figure1 <- evSales %>%
          fill    = 'Vehicle Model',
          caption = 'Data sources: hybridcars.com & insideEVs.com')
 
-ggsave(file.path('figures', 'figure1.png'),
+ggsave(here::here('figures', 'figure1.png'),
        figure1, width = 10, heigh = 5)
 
 # Figure 1 (alt) --------------------------------------------------------------
@@ -69,12 +67,12 @@ ggsave(file.path('figures', 'figure1.png'),
 
 # Make the figure
 figure1alt <- evSales %>%
-    filter(category %in% c('bev', 'phev')) %>% 
+    filter(category %in% c('bev', 'phev')) %>%
     mutate(
-        category = fct_recode(category, 
-                              'BEV' = 'bev', 
-                              'PHEV' = 'phev'), 
-        category = fct_relevel(category, 
+        category = fct_recode(category,
+                              'BEV' = 'bev',
+                              'PHEV' = 'phev'),
+        category = fct_relevel(category,
                                c('PHEV', 'BEV')),
         sales = sales / 10^3,
         bevBrand =
@@ -89,7 +87,7 @@ figure1alt <- evSales %>%
     summarise(sales = sum(sales)) %>%
     ggplot(aes(x = date, y = sales)) +
     geom_col(aes(fill = bevBrand)) +
-    facet_wrap(~category) + 
+    facet_wrap(~category) +
     scale_x_date(
         limits = ymd(c('2011-01-01', '2019-09-01')),
         date_breaks = '1 year',
@@ -108,7 +106,7 @@ figure1alt <- evSales %>%
          fill    = 'Vehicle Model',
          caption = 'Data sources: hybridcars.com & insideEVs.com')
 
-ggsave(file.path('figures', 'figure1alt.png'),
+ggsave(here::here('figures', 'figure1alt.png'),
        figure1alt, width = 10, heigh = 4)
 
 # Figure 2 --------------------------------------------------------------------
@@ -199,7 +197,7 @@ figure2 <- bevSankeyDf %>%
         y = paste0('Percentage of respondents (n = ',
                    sum(bevSankeyLabelsBefore$n), ')'))
 
-ggsave(file.path('figures', 'figure2.png'),
+ggsave(here::here('figures', 'figure2.png'),
        figure2, width = 9, height = 6)
 
 # Figure 3 --------------------------------------------------------------------
@@ -210,7 +208,7 @@ figure3 <- probsPlotSingle(fit_bev(split = FALSE)) +
           axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
 
-ggsave(file.path('figures', 'figure3.png'),
+ggsave(here::here('figures', 'figure3.png'),
        figure3, width = 5, height = 4)
 
 # Figure 4 --------------------------------------------------------------------
@@ -278,7 +276,7 @@ figure4 <- plot_grid(
     knowledge_barplot_subsidy,
     labels = c('A', 'B'), nrow = 1, rel_widths = c(1, 0.52))
 
-ggsave(file.path('figures', 'figure4.png'),
+ggsave(here::here('figures', 'figure4.png'),
        figure4, width = 10, height = 3.5)
 
 # Figure 5 --------------------------------------------------------------------
@@ -312,7 +310,7 @@ legend <- get_legend(bev_knowledge_fuels_plot +
 figure5 <- plot_grid(figure5, legend,
                      ncol = 1, rel_heights = c(1, 0.06))
 
-ggsave(file.path('figures', 'figure5.png'),
+ggsave(here::here('figures', 'figure5.png'),
        figure5, width = 8, height = 8)
 
 # Figure 6 --------------------------------------------------------------------
@@ -325,7 +323,7 @@ figure6 <- probsPlotMulti(
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
 
-ggsave(file.path('figures', 'figure6.png'),
+ggsave(here::here('figures', 'figure6.png'),
        figure6, width = 8, height = 4)
 
 # Figure 7 --------------------------------------------------------------------
@@ -336,7 +334,7 @@ figure7 <- probsPlotMulti(
     xlab        = 'Car Model',
     l_position  = c(0.99, 1.3))
 
-ggsave(file.path('figures', 'figure7.png'),
+ggsave(here::here('figures', 'figure7.png'),
        figure7, width = 8, height = 4)
 
 # Figure A1 -------------------------------------------------------------------
@@ -427,5 +425,5 @@ figureA1 <- phevSankeyDf %>%
         y = paste0('Percentage of respondents (n = ',
                    sum(phevSankeyLabelsBefore$n), ')'))
 
-ggsave(file.path('figures', 'figureA1.png'),
+ggsave(here::here('figures', 'figureA1.png'),
        figureA1, width = 9, height = 6)

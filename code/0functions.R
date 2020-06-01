@@ -1,6 +1,4 @@
-# *****************************************************************************
 # DATA PREP -------------------------------------------------------------------
-# *****************************************************************************
 
 # Global vars -----------------------------------------------------------------
 
@@ -9,9 +7,9 @@ ratingLevels <- c(
     "Definitely yes")
 ratingLevels <- factor(ratingLevels, ordered = TRUE, levels = ratingLevels)
 
-ratingsChangeLevels <- c(
+ratingChangeLevels <- c(
     "Negative", "No change", "Positive")
-ratingsChangeLevels <- factor(ratingChangeLevels, ordered = TRUE, 
+ratingChangeLevels <- factor(ratingChangeLevels, ordered = TRUE,
                        levels = ratingChangeLevels)
 
 # Summarize ratings data ------------------------------------------------------
@@ -66,9 +64,9 @@ prepRatingsData <- function(df) {
         separate(type, into = c('drop', 'type'), sep = 'consider') %>%
         dplyr::select(
             fuelElec_only, fuelGas_only, fuel_bothanswers,
-            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV, 
-            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron, 
-            car_nexo, car_priusprime, multicar, count_cars_driven, 
+            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV,
+            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron,
+            car_nexo, car_priusprime, multicar, count_cars_driven,
             type, period, rating) %>%
         mutate(
             type   = str_to_upper(type),
@@ -76,48 +74,47 @@ prepRatingsData <- function(df) {
             period = factor(period, levels = c('Before', 'After')),
             periodAfter = ifelse(period == 'After', 1, 0),
             rating = factor(rating, ordered = TRUE, levels = ratingLevels))
-    df_bev <- df %>% 
-        filter(type == 'BEV') %>% 
+    df_bev <- df %>%
+        filter(type == 'BEV') %>%
         mutate(id = row_number())
-    df_phev <- df %>% 
-        filter(type == 'PHEV') %>% 
+    df_phev <- df %>%
+        filter(type == 'PHEV') %>%
         mutate(id = row_number())
     return(list(df_bev = df_bev, df_phev = df_phev))
 }
 
 prepRatingsChangeData <- function(df) {
-    df <- df %>% 
+    df <- df %>%
         gather(key = 'type', value = 'ratingChange',
                considerBev.change:considerPhev.change) %>%
-        mutate(type = ifelse(type == 'considerBev.change', 'BEV', 'PHEV')) %>% 
+        mutate(type = ifelse(type == 'considerBev.change', 'BEV', 'PHEV')) %>%
         dplyr::select(
             fuelElec_only, fuelGas_only, fuel_bothanswers,
-            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV, 
-            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron, 
-            car_nexo, car_priusprime, multicar, count_cars_driven, 
+            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV,
+            drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron,
+            car_nexo, car_priusprime, multicar, count_cars_driven,
             type, ratingChange) %>%
             mutate(
                 type   = str_to_upper(type),
-                ratingChange = factor(ratingChange, ordered = TRUE, 
-                                      levels = ratingsChangeLevels))
-    df_bev <- df %>% 
-        filter(type == 'BEV') %>% 
+                ratingChange = factor(ratingChange, ordered = TRUE,
+                                      levels = ratingChangeLevels))
+    df_bev <- df %>%
+        filter(type == 'BEV') %>%
         mutate(id = row_number())
-    df_phev <- df %>% 
-        filter(type == 'PHEV') %>% 
+    df_phev <- df %>%
+        filter(type == 'PHEV') %>%
         mutate(id = row_number())
     return(list(df_bev = df_bev, df_phev = df_phev))
 }
 
 
 
-# *****************************************************************************
+
 # SUMMARIZE RESULTS -----------------------------------------------------------
-# *****************************************************************************
 
 # Get summary tables from fit models ------------------------------------------
 
-polrSummaryTable <- function(fit) {
+coefSummaryTable <- function(fit) {
     summary_table <- as.data.frame(coef(summary(fit)))
     pval <- pnorm(abs(summary_table[, "t value"]), lower.tail = FALSE)*2
     signifCodes <- getSignifCodes(pval)
@@ -126,9 +123,9 @@ polrSummaryTable <- function(fit) {
     return(summary_table)
 }
 
-printPolrSummaryTable <- function(fit) {
+formattedSummaryTable <- function(fit) {
     # Get numbers to print
-    printTable <- polrSummaryTable(fit) %>%
+    printTable <- coefSummaryTable(fit) %>%
         mutate(
             Coef = round(Value, 3),
             `Std. Error` = paste('(',
@@ -141,7 +138,7 @@ printPolrSummaryTable <- function(fit) {
     cat("Signif. codes:  '***'=0.001, '**'=0.01, '*'=0.05, '.'=0.1, ' '=1", '\n',
         sep='')
     cat('---', '\n', sep='')
-    cat('N Respondents:' , fit$nresp, '\n')
+    cat('N obs:' , fit$n, '\n')
     cat('Log-likelihood:' , logLik(fit)[1], '\n')
 }
 
@@ -186,9 +183,7 @@ addFitStats <- function(fit, numDraws = 10^4) {
     # Use the draws to add computed probabilities to the object
     fit$probs <- computeProbsSummary(fit, numDraws)
     # Add coefficient summary table
-    fit$coef_summary <- polrSummaryTable(fit)
-    # Add the number of respondents
-    fit$nresp <- fit$n / 2
+    fit$coef_summary <- coefSummaryTable(fit)
     return(fit)
 }
 
@@ -292,9 +287,8 @@ percentChangeSummary <- function(fit) {
 }
 
 
-# *****************************************************************************
+
 # PLOT RESULTS ----------------------------------------------------------------
-# *****************************************************************************
 
 theme_bars <- function() {
     theme_bw(base_family = 'Fira Sans Condensed',
