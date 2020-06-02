@@ -202,8 +202,12 @@ ggsave(here::here('figures', 'figure2.png'),
 
 # Figure 3 --------------------------------------------------------------------
 
-figure3 <- probsPlotSingle(fit_bev(split = FALSE)) +
-    theme(legend.position = c(0.9, 0.85),
+figure3_fit <- addFitStats(polr(
+    rating ~ periodAfter,
+    data = df_ratings_bev, Hess = TRUE))
+
+figure3 <- probsPlotSingle(figure3_fit) +
+    theme(legend.position = c(0.9, 0.855),
           legend.background = element_blank(),
           axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
@@ -283,17 +287,28 @@ ggsave(here::here('figures', 'figure4.png'),
 
 # Effect for BEV ratings depending on if respondent had greater knowledge
 # about BEV refueling
+
+bev_knowledge_fuels_plot_fit <- addFitStats(polr(
+    rating ~  periodAfter + fuelElec_only + fuelGas_only + fuel_bothanswers +
+        periodAfter*fuelElec_only + periodAfter*fuelGas_only +
+        periodAfter*fuel_bothanswers,
+    data = df_ratings_bev, Hess = TRUE))
+
 bev_knowledge_fuels_plot <- probsPlotMulti(
-    fit_bev_knowledge_fuels(split = FALSE),
-    factorNames = c(
-        'Neither', 'Both', 'Plug-in only', 'Gas only'),
+    bev_knowledge_fuels_plot_fit,
+    factorNames = c('Neither', 'Both', 'Plug-in only', 'Gas only'),
     xlab = 'Fuel knowledge questions correctly answered',
     l_position = c(0.8, 1.3))
 
 # Effect for BEV ratings depending on if respondent had greater knowledge
 # about PEV subsidies
+
+bev_knowledge_subsidy_plot_fit <- addFitStats(polr(
+    rating ~  periodAfter + subsidy_correct + periodAfter*subsidy_correct,
+    data = df_ratings_bev, Hess = TRUE))
+
 bev_knowledge_subsidy_plot <- probsPlotMulti(
-    fit_bev_knowledge_subsidies(split = FALSE),
+    bev_knowledge_subsidy_plot_fit,
     factorNames = c('No', 'Yes'),
     xlab = 'Subsidy knowledge question correctly answered',
     l_position = c(0.8, 1.25)) +
@@ -315,11 +330,15 @@ ggsave(here::here('figures', 'figure5.png'),
 
 # Figure 6 --------------------------------------------------------------------
 
+figure6_fit <- addFitStats(polr(
+    rating ~ periodAfter + neighborhasEV + periodAfter*neighborhasEV,
+    data = df_ratings_bev, Hess = TRUE))
+
 figure6 <- probsPlotMulti(
-    fit_bev_neighborEV(split = FALSE),
+    figure6_fit,
     factorNames = c('No', 'Yes'),
     xlab        = 'Neighbor with EV',
-    l_position  = c(0.99, 1.23)) +
+    l_position  = c(0.99, 1.29)) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
 
@@ -328,8 +347,14 @@ ggsave(here::here('figures', 'figure6.png'),
 
 # Figure 7 --------------------------------------------------------------------
 
+figure7_fit <- addFitStats(polr(
+    rating ~ periodAfter + car_etron +car_kona + car_leaf + car_nexo +
+        car_priusprime + periodAfter*car_etron + periodAfter*car_kona +
+        periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
+    data = df_ratings_bev, Hess = TRUE))
+
 figure7 <- probsPlotMulti(
-    fit_bev_carModels(split = FALSE),
+    figure7_fit,
     factorNames = c('Baseline', 'e-tron', 'Kona', 'Leaf', 'Nexo', 'Prius Prime'),
     xlab        = 'Car Model',
     l_position  = c(0.99, 1.3))

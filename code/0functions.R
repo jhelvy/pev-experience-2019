@@ -362,45 +362,47 @@ theme_barplot <- function() {
 
 probsPlotSingle <- function(fit) {
     plotColors <- c('grey80', 'sienna')
-    plotTitle <- paste0(
-        'Predicted probability of choosing rating\nbefore & after ',
-        'experience (N = ', fit$nresp, ')')
+    title <- paste0(
+        'Predicted probability of choosing rating\n', 
+        'before & after experience')
+    subtitle <- paste0(
+        'Number of observations = ', scales::comma(fit$n))
     plot <- fit$probs %>%
     spread(stat, p) %>%
     mutate(
         period = fct_relevel(period, c('Before', 'After')),
         rating = fct_recode(rating,
-                            'Definitely\nyes' = 'Definitely yes',
-                            'Probably\nyes' = 'Probably yes',
-                            'Maybe /\nNot sure' = 'Maybe / Not sure',
-                            'Definitely\nnot' = 'Definitely not',
-                            'Probably\nnot' = 'Probably not')) %>%
+            'Definitely\nyes'   = 'Definitely yes',
+            'Probably\nyes'     = 'Probably yes',
+            'Maybe /\nNot sure' = 'Maybe / Not sure',
+            'Definitely\nnot'   = 'Definitely not',
+            'Probably\nnot'     = 'Probably not')) %>%
         ggplot(aes(x = rating, y = mean, ymin = lower, ymax = upper,
                    fill = period)) +
-        geom_bar(stat = 'identity', width = 0.7,
-                 position = position_dodge2(preserve = "single")) +
+        geom_col(width = 0.7, position = position_dodge2(preserve = "single")) +
         geom_errorbar(width = 0.2, position = position_dodge(width = 0.7)) +
         scale_fill_manual(values = plotColors) +
-        scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+        scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
         theme_barplot() +
         geom_hline(yintercept = 0) +
-        labs(
-            x = 'Rating',
-            y = 'Probability of choosing rating',
-            fill = 'Period',
-            title = plotTitle)
+        labs(x = 'Rating',
+             y = 'Probability of choosing rating',
+             fill = 'Period',
+             title = title, 
+             subtitle = subtitle)
     return(plot)
 }
 
-probsPlotMulti <- function(
-    fit,
-    factorNames = levels(as.factor(fit$probs$case)),
-    xlab = 'Case',
-    l_position = c(0.8, 1.15)) {
+probsPlotMulti <- function(fit,
+        factorNames = levels(as.factor(fit$probs$case)),
+        xlab = 'Case',
+        l_position = c(0.8, 1.15)) {
     plotColors <- c('grey80', 'sienna')
-    plotTitle <- paste0(
-        'Predicted probability of choosing rating\nbefore & after ',
-        'experience (N = ', fit$nresp, ')')
+    title <- paste0(
+        'Predicted probability of choosing rating\n', 
+        'before & after experience')
+    subtitle <- paste0(
+        'Number of observations = ', scales::comma(fit$n))
     plot <- fit$probs %>%
         spread(stat, p) %>%
         mutate(period = fct_relevel(period, c('Before', 'After'))) %>%
@@ -410,13 +412,12 @@ probsPlotMulti <- function(
                                levels = factorNames))) %>%
         ggplot(aes(x = case_name, y = mean, ymin = lower, ymax = upper,
                    fill = period)) +
-        geom_bar(stat = 'identity', width = 0.7,
-                 position = position_dodge2(preserve = "single")) +
+        geom_col(width = 0.7, position = position_dodge2(preserve = "single")) +
         geom_errorbar(width = 0.2, position = position_dodge(width = 0.7)) +
         facet_wrap(vars(rating), nrow = 1) +
         scale_fill_manual(values = plotColors,
                           guide = guide_legend(direction = "horizontal")) +
-        scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+        scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
         theme_barplot() +
         geom_hline(yintercept = 0) +
         panel_border() +
@@ -424,7 +425,8 @@ probsPlotMulti <- function(
         labs(
             x = xlab,
             y = 'Probability of choosing rating',
-            title = plotTitle,
+            title = title,
+            subtitle = subtitle,
             fill = 'Period: ')
     return(plot)
 }
