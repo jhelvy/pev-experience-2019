@@ -154,78 +154,43 @@ getSignifCodes = function(pVal) {
 # Compute rating probabilities ------------------------------------------------
 #
 # Notation:
-# 'alpha' refers to all the "after" coefficient
-# 'beta' refers to all the intercept coefficients
-# 'delta' refers to all the other covariates
+# alpha = The intercept coefficients
+# beta  = The "period after" coefficient
+# gamma = Coefficients for all other covariates
+# delta = Coefficients for the interaction of the "period after" effect and 
+#         all other covariates
 #
-# The model used is:
+# The baseline model used is:
 #
-# Before rating: logit(P < 1) = beta1
-# After rating: logit(P < 1) = beta1 - alpha1
+# Before rating: logit(P < j) = alpha
+# After rating:  logit(P < j) = alpha - beta
 #
-# Other covariates are denoted by delta, e.g. delta1 represents the effect
+# Other covariates are denoted by gamma, e.g. gamma1 represents the effect
 # for those who got the knowledge questions correct. In this case, the model
 # would be:
 #
-# Before rating w/out knowledge: logit(P < 1) = beta1
-# Before rating w/knowledge: logit(P < 1) = beta1 - delta1
-# After rating w/out knowledge: logit(P < 1) = beta1 - alpha1
-# After rating w/knowledge: logit(P < 1) = beta1 - alpha1 - delta1
+# Before rating w/out knowledge: logit(P < j) = alpha1
+# Before rating w/knowledge:     logit(P < j) = alpha1 - gamma1
+# After rating w/out knowledge:  logit(P < j) = alpha1 - beta1
+# After rating w/knowledge:      logit(P < j) = alpha1 - beta1 - gamma1 - delta1
 #
 # For the second rating category, everything would be the same, except
-# you would add beta2 to the model. For the third rating category, you
-# would add beta3, and so on.
+# you would use alpha2 instead of alpha1. For the third rating category, you
+# would add alpha3, and so on.
 
-addFitStats <- function(fit, numDraws = 10^4) {
+addFitStats <- function(fit, numDraws = 10^4, changeModel = FALSE) {
     # Add draws of the coefficients to the 'fit' object
     fit$draws <- getUncertaintyDraws(fit, numDraws)
     names(fit$draws) <- getCoefNames(fit)
     # Use the draws to add computed probabilities to the object
-    fit$probs <- computeProbsSummary(fit, numDraws)
+    if (changeModel) {
+        fit$probs <- computeChangeProbsSummary(fit, numDraws)   
+    } else {
+        fit$probs <- computeProbsSummary(fit, numDraws)    
+    }
     # Add coefficient summary table
     fit$coef_summary <- coefSummaryTable(fit)
     return(fit)
-}
-
-getCoefNames <- function(fit) {
-    return(names(c(fit$coefficients, fit$zeta)))
-}
-
-# The stratey to compute the probabilities is to take a lot of draws
-# of each model parameter, and then compute the probability of each possible
-# rating outcome using those draws. The draws allow us to pass through
-# parameter uncertainy
-computeProbsSummary <- function(fit, numDraws = 10^4) {
-    nBreaks <- length(fit$zeta)
-    draws_alpha <- repDraws(fit$draws[names(fit$coefficients)[1]], nBreaks)
-    draws_beta <- fit$draws[names(fit$zeta)]
-    # Compute the probabilities for the baseline before case
-    draws_before <- draws_beta
-    probs_before <- computeProbsCI(draws_before)
-    probs_before$case <- 'Before-baseline'
-    # Compute the probabilities for the baseline after case
-    draws_after <- draws_beta - draws_alpha
-    probs_after <- computeProbsCI(draws_after)
-    probs_after$case <- 'After-baseline'
-    # For each remaining delta parameter, compute the probabilities by
-    # subtracting the additional alpha parameter draws
-    result <- bind_rows(probs_before, probs_after)
-    if (length(fit$coefficients) > 1) {
-        for (i in 2:length(fit$coefficients)) {
-            delta <- fit$coefficients[i]
-            draws_delta <- repDraws(fit$draws[names(delta)], nBreaks)
-            temp_before <- draws_before - draws_delta
-            temp_after <- draws_after - draws_delta
-            probs_temp_before <- computeProbsCI(temp_before)
-            probs_temp_after <- computeProbsCI(temp_after)
-            probs_temp_before$case <- paste('Before', names(delta), sep = '-')
-            probs_temp_after$case <- paste('After', names(delta), sep = '-')
-            result <- bind_rows(result, probs_temp_before, probs_temp_after)
-        }
-    }
-    result <- result %>%
-        separate(case, into = c('period', 'case'), sep = '-')
-    return(result)
 }
 
 getUncertaintyDraws = function(fit, numDraws) {
@@ -235,27 +200,109 @@ getUncertaintyDraws = function(fit, numDraws) {
     return(draws)
 }
 
+# The stratey to compute the probabilities with uncertainty is to take a lot of
+# draws of each model parameter, and then compute the probability of each 
+# possible rating outcome using those draws. The draws allow us to pass through
+# parameter uncertainy
+
+computeChangeProbsSummary <- function(fit, numDraws = 10^4) {
+    nBreaks <- length(fit$zeta)
+    draws_alpha <- fit$draws[names(fit$zeta)]
+    # For each gamma parameter, compute the probabilities by
+    # subtracting the additional gamma and delta parameter draws
+    gammaNames <- getGammaCoefNames(fit)
+    result <- list()
+    if (length(gammaNames) > 0) {
+        for (i in 1:length(gammaNames)) {
+            gammaName <- gammaNames[i]
+            gamma <- fit$coefficients[gammaName]
+            draws_gamma <- repDraws(fit$draws[gammaName], nBreaks)
+            temp <- draws_alpha - draws_gamma 
+            probs_temp <- computeProbsCI(temp, ratingChangeLevels)
+            probs_temp$case <- gammaName
+            result[[i]] <- probs_temp
+        }
+    }
+    return(do.call(bind_rows, result))
+}
+
+computeProbsSummary <- function(fit, numDraws = 10^4) {
+    nBreaks <- length(fit$zeta)
+    draws_alpha <- fit$draws[names(fit$zeta)]
+    draws_beta <- repDraws(fit$draws['periodAfter'], nBreaks)
+    # Compute the probabilities for the baseline before case
+    draws_before <- draws_alpha
+    probs_before <- computeProbsCI(draws_before, ratingLevels)
+    probs_before$case <- 'Before-baseline'
+    # Compute the probabilities for the baseline after case
+    draws_after <- draws_alpha - draws_beta
+    probs_after <- computeProbsCI(draws_after, ratingLevels)
+    probs_after$case <- 'After-baseline'
+    # For each remaining gamma parameter, compute the probabilities by
+    # subtracting the additional gamma and delta parameter draws
+    result <- bind_rows(probs_before, probs_after)
+    gammaNames <- getGammaCoefNames(fit)
+    deltaNames <- getDeltaCoefNames(fit)
+    if (length(gammaNames) > 0) {
+        for (gammaName in gammaNames) {
+            deltaName <- deltaNames[str_detect(deltaNames, gammaName)]
+            gamma <- fit$coefficients[gammaName]
+            delta <- fit$coefficients[deltaName]
+            draws_gamma <- repDraws(fit$draws[gammaName], nBreaks)
+            draws_delta <- repDraws(fit$draws[deltaName], nBreaks)
+            temp_before <- draws_before - draws_gamma 
+            temp_after <- draws_after - draws_gamma - draws_delta
+            probs_temp_before <- computeProbsCI(temp_before, ratingLevels)
+            probs_temp_after <- computeProbsCI(temp_after, ratingLevels)
+            probs_temp_before$case <- paste('Before', gammaName, sep = '-')
+            probs_temp_after$case <- paste('After', gammaName, sep = '-')
+            result <- bind_rows(result, probs_temp_before, probs_temp_after)
+        }
+    }
+    result <- result %>%
+        separate(case, into = c('period', 'case'), sep = '-')
+    return(result)
+}
+
 repDraws <- function(draws, n) {
     return(matrix(rep(as.matrix(draws), n), ncol = n, byrow = FALSE))
 }
 
+getCoefNames <- function(fit) {
+    return(names(c(fit$coefficients, fit$zeta)))
+}
+
+getGammaCoefNames <- function(fit) {
+    gammaNames <- data.frame(v = getCoefNames(fit)) %>% 
+        filter(str_detect(v, '\\|') == FALSE) %>% 
+        filter(str_detect(v, ':') == FALSE) %>% 
+        filter(str_detect(v, 'periodAfter') == FALSE) 
+    return(as.character(gammaNames$v))
+}
+
+getDeltaCoefNames <- function(fit) {
+    deltaNames <- data.frame(v = getCoefNames(fit)) %>% 
+        filter(str_detect(v, ':')) 
+    return(as.character(deltaNames$v))
+}
+
 # Computes the probabilities of choosing each rating with uncertainty
-computeProbsCI <- function(draws) {
-    prob_draws <- getProbDraws(draws)
+computeProbsCI <- function(draws, levels) {
+    prob_draws <- getProbDraws(draws, levels)
     probsCI <- as_tibble(t(apply(prob_draws, 2, ci)))
     result <- probsCI %>%
-        dplyr::mutate(rating = ratingLevels) %>%
+        dplyr::mutate(rating = levels) %>%
         dplyr::select(rating, mean, lower, upper) %>%
         gather(key = 'stat', value = 'p', mean:upper)
     return(result)
 }
 
-getProbDraws <- function(draws) {
+getProbDraws <- function(draws, levels) {
     prob_draws <- exp(draws) / (1 + exp(draws))
     prob_draws_shifted <- cbind(
         prob_draws[,2:ncol(draws)], unit = matrix(1, nrow = nrow(draws)))
     prob_draws <- cbind(prob_draws[,1], prob_draws_shifted - prob_draws)
-    names(prob_draws) <- ratingLevels
+    names(prob_draws) <- levels
     return(prob_draws)
 }
 

@@ -164,27 +164,6 @@ fit <- addFitStats(polr(
     data = df_ratings_phev, Hess = TRUE))
 formattedSummaryTable(fit)
 
-# Models in Table A8 in SI ----------------------------------------------------
-
-# Models where the dependent variable is the "change" in the rating
-# rather than the rating level
-
-# Model A10a: Effect for BEV rating change
-fit <- polr(
-    ratingChange ~ fuelElec_only + fuelGas_only + fuel_bothanswers +
-    subsidy_correct + neighborhasEV + car_etron + car_kona + car_leaf +
-    car_nexo + car_priusprime,
-    data = df_ratings_change_bev, Hess = TRUE)
-formattedSummaryTable(fit)
-
-# Model A10b: Effect for PHEV rating change
-fit <- polr(
-    ratingChange ~ fuelElec_only + fuelGas_only + fuel_bothanswers +
-    subsidy_correct + neighborhasEV + car_etron + car_kona + car_leaf +
-    car_nexo + car_priusprime,
-    data = df_ratings_change_phev, Hess = TRUE)
-formattedSummaryTable(fit)
-
 # View results of any model ---------------------------------------------------
 
 # View the stored summary table of the coefficients
@@ -204,4 +183,3 @@ percentChangeSummary(fit)
 # Plot the predicted probabilities
 probsPlotSingle(fit)
 probsPlotMulti(fit)
-
