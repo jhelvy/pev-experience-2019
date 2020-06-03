@@ -16,6 +16,7 @@ formattedSummaryTable(fit)
 
 # Model 2a: Effect for BEV ratings depending on if respondent had greater
 #           knowledge about PEV refueling
+#           Dummied out level is the respondents that got neither correct
 fit <- addFitStats(polr(
     rating ~  periodAfter + fuelElec_only + fuelGas_only + fuel_bothanswers +
     periodAfter*fuelElec_only + periodAfter*fuelGas_only +
@@ -37,22 +38,22 @@ fit <- addFitStats(polr(
 formattedSummaryTable(fit)
 
 # Model 4: Effect for BEV ratings depending on which vehicle model rode in
+#          Dummied out level is "etron"
 fit <- addFitStats(polr(
-    rating ~ periodAfter + car_etron +car_kona + car_leaf + car_nexo +
-    car_priusprime + periodAfter*car_etron + periodAfter*car_kona +
-    periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
+    rating ~ periodAfter + car_kona + car_leaf + car_nexo + car_priusprime + 
+    periodAfter*car_kona + periodAfter*car_leaf + periodAfter*car_nexo + 
+    periodAfter*car_priusprime,
     data = df_ratings_bev, Hess = TRUE))
 formattedSummaryTable(fit)
 
 # Model 5: Effect for BEV ratings w/all main coefficients
 fit <- addFitStats(polr(
     rating ~  periodAfter + fuelElec_only + fuelGas_only + fuel_bothanswers +
-    subsidy_correct + neighborhasEV + car_etron +car_kona + car_leaf +
-    car_nexo + car_priusprime + periodAfter*fuelElec_only +
-    periodAfter*fuelGas_only + periodAfter*fuel_bothanswers +
-    periodAfter*subsidy_correct +  periodAfter*neighborhasEV +
-    periodAfter*car_etron + periodAfter*car_kona +
-    periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
+    subsidy_correct + neighborhasEV + car_kona + car_leaf + car_nexo + 
+    car_priusprime + periodAfter*fuelElec_only + periodAfter*fuelGas_only + 
+    periodAfter*fuel_bothanswers + periodAfter*subsidy_correct +  
+    periodAfter*neighborhasEV + periodAfter*car_kona + periodAfter*car_leaf + 
+    periodAfter*car_nexo + periodAfter*car_priusprime,
     data = df_ratings_bev, Hess = TRUE))
 formattedSummaryTable(fit)
 
@@ -88,21 +89,20 @@ formattedSummaryTable(fit)
 
 # Model A4: Effect for PHEV ratings depending on which vehicle model rode in
 fit <- addFitStats(polr(
-    rating ~ periodAfter + car_etron +car_kona + car_leaf + car_nexo +
-    car_priusprime + periodAfter*car_etron + periodAfter*car_kona +
-    periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
+    rating ~ periodAfter + car_kona + car_leaf + car_nexo + car_priusprime + 
+    periodAfter*car_kona + periodAfter*car_leaf + periodAfter*car_nexo + 
+    periodAfter*car_priusprime,
     data = df_ratings_phev, Hess = TRUE))
 formattedSummaryTable(fit)
 
 # Model A5: Effect for BEV ratings w/all main coefficients
 fit <- addFitStats(polr(
     rating ~  periodAfter + fuelElec_only + fuelGas_only + fuel_bothanswers +
-    subsidy_correct + neighborhasEV + car_kona + car_leaf + car_etron +
-    car_nexo + car_priusprime + periodAfter*fuelElec_only +
-    periodAfter*fuelGas_only + periodAfter*fuel_bothanswers +
-    periodAfter*subsidy_correct +  periodAfter*neighborhasEV +
-    periodAfter*car_etron + periodAfter*car_kona +
-    periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
+    subsidy_correct + neighborhasEV + car_kona + car_leaf + car_nexo + 
+    car_priusprime + periodAfter*fuelElec_only + periodAfter*fuelGas_only + 
+    periodAfter*fuel_bothanswers + periodAfter*subsidy_correct +  
+    periodAfter*neighborhasEV + periodAfter*car_kona + periodAfter*car_leaf + 
+    periodAfter*car_nexo + periodAfter*car_priusprime,
     data = df_ratings_phev, Hess = TRUE))
 formattedSummaryTable(fit)
 

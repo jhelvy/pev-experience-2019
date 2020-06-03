@@ -345,23 +345,6 @@ figure6 <- probsPlotMulti(
 ggsave(here::here('figures', 'figure6.png'),
        figure6, width = 8, height = 4)
 
-# Figure 7 --------------------------------------------------------------------
-
-figure7_fit <- addFitStats(polr(
-    rating ~ periodAfter + car_etron +car_kona + car_leaf + car_nexo +
-        car_priusprime + periodAfter*car_etron + periodAfter*car_kona +
-        periodAfter*car_leaf + periodAfter*car_nexo + periodAfter*car_priusprime,
-    data = df_ratings_bev, Hess = TRUE))
-
-figure7 <- probsPlotMulti(
-    figure7_fit,
-    factorNames = c('Baseline', 'e-tron', 'Kona', 'Leaf', 'Nexo', 'Prius Prime'),
-    xlab        = 'Car Model',
-    l_position  = c(0.99, 1.3))
-
-ggsave(here::here('figures', 'figure7.png'),
-       figure7, width = 8, height = 4)
-
 # Figure A1 -------------------------------------------------------------------
 
 # Create the plot data frame
@@ -452,3 +435,20 @@ figureA1 <- phevSankeyDf %>%
 
 ggsave(here::here('figures', 'figureA1.png'),
        figureA1, width = 9, height = 6)
+
+# Figure A2 --------------------------------------------------------------------
+
+figureA2_fit <- addFitStats(polr(
+    rating ~ periodAfter + car_kona + car_leaf + car_nexo + car_priusprime + 
+        periodAfter*car_kona + periodAfter*car_leaf + periodAfter*car_nexo + 
+        periodAfter*car_priusprime,
+    data = df_ratings_bev, Hess = TRUE))
+
+figureA2 <- probsPlotMulti(
+    figureA2_fit,
+    factorNames = c('e-tron', 'Kona', 'Leaf', 'Nexo', 'Prius Prime'),
+    xlab        = 'Car Model',
+    l_position  = c(0.99, 1.3))
+
+ggsave(here::here('figures', 'figureA2.png'),
+       figureA2, width = 8, height = 4)
