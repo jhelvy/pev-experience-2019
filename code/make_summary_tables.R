@@ -60,8 +60,8 @@ main <- df_complete %>%
     arrange(type, period)
 
 # Summaries based on consumer responses
-charging <- countSummary(df_complete, BEV_parking) %>%
-    mutate(BEV_parking = ifelse(BEV_parking == 1, 'Yes', 'No'))
+charging <- countSummary(df_complete, home_parking) %>%
+    mutate(home_parking = ifelse(home_parking == 1, 'Yes', 'No'))
 ownsCar <- countSummary(df_complete, ownsCar) %>%
     mutate(ownsCar = ifelse(ownsCar == 1, 'Yes', 'No'))
 neighborEV <- countSummary(df_complete, neighborhasEV) %>%

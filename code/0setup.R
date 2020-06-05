@@ -17,8 +17,8 @@ source(here::here('code', '0functions.R'))
 
 # Use the RDS files instead of csv so that rating levels are
 # correctly ordered
-df <- readRDS(here::here('data', 'autoshow.Rds'))
-df_complete <- readRDS(here::here('data', 'autoshow_complete.Rds'))
+df <- readRDS(here::here('data', 'data_processed.Rds'))
+df_complete <- readRDS(here::here('data', 'data_processed_complete.Rds'))
 
 # Prep data for models with rating as dependent variable
 df_ratings <- prepRatingsData(df_complete)

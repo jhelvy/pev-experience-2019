@@ -12,9 +12,19 @@ Data are scraped from hybridcars.com and insideevs.com.
 # ----------------------------------------------------------------------
 
 Data files:
-autoshow_complete.Rds
-autoshow.Rds
+data_raw.csv
 
 Description:
-Results from the entry and exit surveys fielded at the DC autoshow PEV
-EZEV ride and drive experience held April 5 - 14, 2019.
+The raw survey data from the entry and exit surveys fielded at the DC autoshow
+PEV EZEV ride and drive experience held April 5 - 14, 2019.
+
+# ----------------------------------------------------------------------
+
+Data files:
+data_processed_complete.Rds
+data_processed.Rds
+
+Description:
+Formatted version of the data_raw.csv data file.
+The data_processed_complete.Rds file is the same thing but filtered out for
+only complete observations (those that filled out both entry and exit surveys)

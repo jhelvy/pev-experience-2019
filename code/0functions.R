@@ -64,7 +64,7 @@ prepRatingsData <- function(df) {
         separate(type, into = c('drop', 'type'), sep = 'consider') %>%
         dplyr::select(
             fuelElec_only, fuelGas_only, fuel_bothanswers,
-            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV,
+            subsidy_correct, neighborhasEV, home_parking, drove_in_BEV,
             drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron,
             car_nexo, car_priusprime, multicar, count_cars_driven,
             type, period, rating) %>%
@@ -90,7 +90,7 @@ prepRatingsChangeData <- function(df) {
         mutate(type = ifelse(type == 'considerBev.change', 'BEV', 'PHEV')) %>%
         dplyr::select(
             fuelElec_only, fuelGas_only, fuel_bothanswers,
-            subsidy_correct, neighborhasEV, BEV_parking, drove_in_BEV,
+            subsidy_correct, neighborhasEV, home_parking, drove_in_BEV,
             drove_in_PHEV, drove_in_FCEV, car_kona, car_leaf, car_etron,
             car_nexo, car_priusprime, multicar, count_cars_driven,
             type, ratingChange) %>%
@@ -157,7 +157,7 @@ getSignifCodes = function(pVal) {
 # alpha = The intercept coefficients
 # beta  = The "period after" coefficient
 # gamma = Coefficients for all other covariates
-# delta = Coefficients for the interaction of the "period after" effect and 
+# delta = Coefficients for the interaction of the "period after" effect and
 #         all other covariates
 #
 # The baseline model used is:
@@ -184,9 +184,9 @@ addFitStats <- function(fit, numDraws = 10^4, changeModel = FALSE) {
     names(fit$draws) <- getCoefNames(fit)
     # Use the draws to add computed probabilities to the object
     if (changeModel) {
-        fit$probs <- computeChangeProbsSummary(fit, numDraws)   
+        fit$probs <- computeChangeProbsSummary(fit, numDraws)
     } else {
-        fit$probs <- computeProbsSummary(fit, numDraws)    
+        fit$probs <- computeProbsSummary(fit, numDraws)
     }
     # Add coefficient summary table
     fit$coef_summary <- coefSummaryTable(fit)
@@ -201,7 +201,7 @@ getUncertaintyDraws = function(fit, numDraws) {
 }
 
 # The stratey to compute the probabilities with uncertainty is to take a lot of
-# draws of each model parameter, and then compute the probability of each 
+# draws of each model parameter, and then compute the probability of each
 # possible rating outcome using those draws. The draws allow us to pass through
 # parameter uncertainy
 
@@ -217,7 +217,7 @@ computeChangeProbsSummary <- function(fit, numDraws = 10^4) {
             gammaName <- gammaNames[i]
             gamma <- fit$coefficients[gammaName]
             draws_gamma <- repDraws(fit$draws[gammaName], nBreaks)
-            temp <- draws_alpha - draws_gamma 
+            temp <- draws_alpha - draws_gamma
             probs_temp <- computeProbsCI(temp, ratingChangeLevels)
             probs_temp$case <- gammaName
             result[[i]] <- probs_temp
@@ -250,7 +250,7 @@ computeProbsSummary <- function(fit, numDraws = 10^4) {
             delta <- fit$coefficients[deltaName]
             draws_gamma <- repDraws(fit$draws[gammaName], nBreaks)
             draws_delta <- repDraws(fit$draws[deltaName], nBreaks)
-            temp_before <- draws_before - draws_gamma 
+            temp_before <- draws_before - draws_gamma
             temp_after <- draws_after - draws_gamma - draws_delta
             probs_temp_before <- computeProbsCI(temp_before, ratingLevels)
             probs_temp_after <- computeProbsCI(temp_after, ratingLevels)
@@ -273,16 +273,16 @@ getCoefNames <- function(fit) {
 }
 
 getGammaCoefNames <- function(fit) {
-    gammaNames <- data.frame(v = getCoefNames(fit)) %>% 
-        filter(str_detect(v, '\\|') == FALSE) %>% 
-        filter(str_detect(v, ':') == FALSE) %>% 
-        filter(str_detect(v, 'periodAfter') == FALSE) 
+    gammaNames <- data.frame(v = getCoefNames(fit)) %>%
+        filter(str_detect(v, '\\|') == FALSE) %>%
+        filter(str_detect(v, ':') == FALSE) %>%
+        filter(str_detect(v, 'periodAfter') == FALSE)
     return(as.character(gammaNames$v))
 }
 
 getDeltaCoefNames <- function(fit) {
-    deltaNames <- data.frame(v = getCoefNames(fit)) %>% 
-        filter(str_detect(v, ':')) 
+    deltaNames <- data.frame(v = getCoefNames(fit)) %>%
+        filter(str_detect(v, ':'))
     return(as.character(deltaNames$v))
 }
 
@@ -363,7 +363,7 @@ theme_barplot <- function() {
 probsPlotSingle <- function(fit) {
     plotColors <- c('grey80', 'sienna')
     title <- paste0(
-        'Predicted probability of choosing rating\n', 
+        'Predicted probability of choosing rating\n',
         'before & after experience')
     subtitle <- paste0(
         'Number of observations = ', scales::comma(fit$n))
@@ -388,7 +388,7 @@ probsPlotSingle <- function(fit) {
         labs(x = 'Rating',
              y = 'Probability of choosing rating',
              fill = 'Period',
-             title = title, 
+             title = title,
              subtitle = subtitle)
     return(plot)
 }
@@ -399,7 +399,7 @@ probsPlotMulti <- function(fit,
         l_position = c(0.8, 1.15)) {
     plotColors <- c('grey80', 'sienna')
     title <- paste0(
-        'Predicted probability of choosing rating\n', 
+        'Predicted probability of choosing rating\n',
         'before & after experience')
     subtitle <- paste0(
         'Number of observations = ', scales::comma(fit$n))
