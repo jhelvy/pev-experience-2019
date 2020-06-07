@@ -398,9 +398,7 @@ probsPlotMulti <- function(fit,
         xlab = 'Case',
         l_position = c(0.8, 1.15)) {
     plotColors <- c('grey80', 'sienna')
-    title <- paste0(
-        'Predicted probability of choosing rating\n',
-        'before & after experience')
+    title <- 'Predicted probability of choosing rating before & after experience'
     subtitle <- paste0(
         'Number of observations = ', scales::comma(fit$n))
     plot <- fit$probs %>%

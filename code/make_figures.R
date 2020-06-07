@@ -337,8 +337,8 @@ figure6_fit <- addFitStats(polr(
 figure6 <- probsPlotMulti(
     figure6_fit,
     factorNames = c('No', 'Yes'),
-    xlab        = 'Neighbor with EV',
-    l_position  = c(0.99, 1.29)) +
+    xlab        = 'Respondent stated having a neighbor that owns a PEV',
+    l_position  = c(0.99, 1.25)) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
 
