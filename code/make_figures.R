@@ -40,6 +40,15 @@ figure1 <- evSales %>%
     summarise(sales = sum(sales)) %>%
     ggplot(aes(x = date, y = sales)) +
     geom_col(aes(fill = category)) +
+    geom_curve(
+        aes(x = ymd('2014-01-01'), xend = ymd('2015-01-01'), y = 13, yend = 2),
+        size = 0.5, curvature = 0.1,
+        arrow = arrow(length = unit(0.01, "npc"), type = "closed")) +
+    geom_label(aes(x = ymd('2012-01-01'), y = 15, label = paste0(
+            'With the exception of Tesla, combined monthly\n',
+            'sales of BEVs by all other automakers\n', 
+            'have been flat for the past five years.')),
+        hjust = 0, lineheight = 0.8, family = 'Roboto Condensed') +
     scale_x_date(
         limits = ymd(c('2011-01-01', '2019-09-01')),
         date_breaks = '1 year',
@@ -48,7 +57,7 @@ figure1 <- evSales %>%
     scale_fill_manual(values = c('#80B1D3', '#175279', '#FF3B3F')) +
     theme_minimal_hgrid(font_family = 'Roboto Condensed') +
     theme(
-        legend.position = c(0.75, 0.90),
+        legend.position = c(0.31, 0.76),
         legend.background = element_rect(
             fill = 'white', color = 'white', size = 3),
         legend.justification = c("right", "top")) +
