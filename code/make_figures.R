@@ -46,14 +46,14 @@ figure1 <- evSales %>%
         arrow = arrow(length = unit(0.01, "npc"), type = "closed")) +
     geom_label(aes(x = ymd('2012-01-01'), y = 15, label = paste0(
             'With the exception of Tesla, combined monthly\n',
-            'sales of BEVs by all other automakers\n', 
+            'sales of BEVs by all other automakers\n',
             'have been flat for the past five years.')),
         hjust = 0, lineheight = 0.8, family = 'Roboto Condensed') +
     scale_x_date(
         limits = ymd(c('2011-01-01', '2019-09-01')),
         date_breaks = '1 year',
         date_labels = "%Y") +
-    scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     scale_fill_manual(values = c('#80B1D3', '#175279', '#FF3B3F')) +
     theme_minimal_hgrid(font_family = 'Roboto Condensed') +
     theme(
@@ -66,9 +66,6 @@ figure1 <- evSales %>%
          title   = 'U.S. Monthly Sales of Battery Electric Vehicles',
          fill    = 'Vehicle Model',
          caption = 'Data sources: hybridcars.com & insideEVs.com')
-
-ggsave(here::here('figures', 'figure1.png'),
-       figure1, width = 10, heigh = 5)
 
 # Figure 1 (alt) --------------------------------------------------------------
 
@@ -101,7 +98,7 @@ figure1alt <- evSales %>%
         limits = ymd(c('2011-01-01', '2019-09-01')),
         date_breaks = '1 year',
         date_labels = "%Y") +
-    scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     scale_fill_manual(values = c('#80B1D3', '#175279', '#FF3B3F')) +
     theme_minimal_hgrid(font_family = 'Roboto Condensed') +
     theme(
@@ -114,9 +111,6 @@ figure1alt <- evSales %>%
          title   = 'U.S. Monthly Sales of Plug-in Electric Vehicles',
          fill    = 'Vehicle Model',
          caption = 'Data sources: hybridcars.com & insideEVs.com')
-
-ggsave(here::here('figures', 'figure1alt.png'),
-       figure1alt, width = 10, heigh = 4)
 
 # Figure 2 --------------------------------------------------------------------
 
@@ -206,9 +200,6 @@ figure2 <- bevSankeyDf %>%
         y = paste0('Percentage of respondents (n = ',
                    sum(bevSankeyLabelsBefore$n), ')'))
 
-ggsave(here::here('figures', 'figure2.png'),
-       figure2, width = 9, height = 6)
-
 # Figure 3 --------------------------------------------------------------------
 
 figure3_fit <- addFitStats(polr(
@@ -221,8 +212,7 @@ figure3 <- probsPlotSingle(figure3_fit) +
           axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
 
-ggsave(here::here('figures', 'figure3.png'),
-       figure3, width = 5, height = 4)
+
 
 # Figure 4 --------------------------------------------------------------------
 
@@ -248,7 +238,7 @@ knowledge_barplot_subsidy <- df_complete %>%
     coord_flip() +
     facet_wrap(vars(facetName)) +
     scale_fill_manual(values=c('gray', 'forestgreen')) +
-    scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     theme_bars() +
     labs(x    = 'Response options',
          y    = 'Number of Respondents',
@@ -277,7 +267,7 @@ knowledge_barplot_fuels <- df_complete %>%
     scale_x_discrete(limits=rev(c(
         'HEV Only', 'PHEV Only', 'BEV Only', 'HEV & PHEV', 'HEV & BEV',
         'PHEV & BEV', 'HEV, PHEV, & BEV'))) +
-    scale_y_continuous(expand = expand_scale(mult = c(0, 0.05))) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     theme_bars() +
     labs(x='Response options',
          y='Number of Respondents',
@@ -288,9 +278,6 @@ figure4 <- plot_grid(
     knowledge_barplot_fuels,
     knowledge_barplot_subsidy,
     labels = c('A', 'B'), nrow = 1, rel_widths = c(1, 0.52))
-
-ggsave(here::here('figures', 'figure4.png'),
-       figure4, width = 10, height = 3.5)
 
 # Figure 5 --------------------------------------------------------------------
 
@@ -334,9 +321,6 @@ legend <- get_legend(bev_knowledge_fuels_plot +
 figure5 <- plot_grid(figure5, legend,
                      ncol = 1, rel_heights = c(1, 0.06))
 
-ggsave(here::here('figures', 'figure5.png'),
-       figure5, width = 8, height = 8)
-
 # Figure 6 --------------------------------------------------------------------
 
 figure6_fit <- addFitStats(polr(
@@ -350,9 +334,6 @@ figure6 <- probsPlotMulti(
     l_position  = c(0.99, 1.25)) +
     theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
           axis.title.x = element_text(vjust = -0.5))
-
-ggsave(here::here('figures', 'figure6.png'),
-       figure6, width = 8, height = 4)
 
 # Figure 7 --------------------------------------------------------------------
 
@@ -368,8 +349,6 @@ figure7 <- probsPlotMulti(
     xlab        = 'Car Model',
     l_position  = c(0.99, 1.3))
 
-ggsave(here::here('figures', 'figure7.png'),
-       figure7, width = 8, height = 4)
 
 # Figure A1 -------------------------------------------------------------------
 
@@ -459,5 +438,61 @@ figureA1 <- phevSankeyDf %>%
         y = paste0('Percentage of respondents (n = ',
                    sum(phevSankeyLabelsBefore$n), ')'))
 
+# Save figures ----------------------------------------------------------------
+
+# Save as PNG files
+ggsave(here::here('figures', 'figure1.png'),
+       figure1, width = 10, height = 5)
+
+ggsave(here::here('figures', 'figure1alt.png'),
+       figure1alt, width = 10, height = 4)
+
+ggsave(here::here('figures', 'figure2.png'),
+       figure2, width = 9, height = 6)
+
+ggsave(here::here('figures', 'figure3.png'),
+       figure3, width = 5, height = 4)
+
+ggsave(here::here('figures', 'figure4.png'),
+       figure4, width = 10, height = 3.5)
+
+ggsave(here::here('figures', 'figure5.png'),
+       figure5, width = 8, height = 8)
+
+ggsave(here::here('figures', 'figure6.png'),
+       figure6, width = 8, height = 4)
+
+ggsave(here::here('figures', 'figure7.png'),
+       figure7, width = 8, height = 4)
+
 ggsave(here::here('figures', 'figureA1.png'),
        figureA1, width = 9, height = 6)
+
+# Save as PDF files
+ggsave(here::here('figures', 'figure1.pdf'),
+       figure1, width = 10, height = 5, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure1alt.pdf'),
+       figure1alt, width = 10, height = 4, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure2.pdf'),
+       figure2, width = 9, height = 6, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure3.pdf'),
+       figure3, width = 5, height = 4, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure4.pdf'),
+       figure4, width = 10, height = 3.5, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure5.pdf'),
+       figure5, width = 8, height = 8, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure6.pdf'),
+       figure6, width = 8, height = 4, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figure7.pdf'),
+       figure7, width = 8, height = 4, device = cairo_pdf)
+
+ggsave(here::here('figures', 'figureA1.pdf'),
+       figureA1, width = 9, height = 6, device = cairo_pdf)
+
